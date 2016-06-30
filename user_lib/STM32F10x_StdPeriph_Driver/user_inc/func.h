@@ -18,3 +18,15 @@ char USART_receive_char(int com);
 #define ENABLE_UART3
 #define ENABLE_UART3_RPC11_TPC10
 
+/********************************************
+* delay func
+********************************************/
+void delay_init(void);
+void delay_us(u32 nus);
+void delay_ms(u32 nms);
+
+/********************************************
+*internal flash rw
+********************************************/
+void WirteFlash(int addoff, uint32_t *data, int wordn);
+uint32_t ReadFlash(int addoff);
