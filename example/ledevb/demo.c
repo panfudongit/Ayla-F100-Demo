@@ -92,7 +92,7 @@ const char version[] = VERSION;
 #endif /* DEMO_IMG_MGMT || AYLA_BUILD_VERSION */
 
 static u8 factory_reset;
-#define COM3 3
+#define COM3 1
 
 static void set_dec_in(struct prop *prop, void *arg, void *valp, size_t len);
 
