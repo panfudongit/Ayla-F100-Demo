@@ -324,6 +324,22 @@ void USART3_GPIO_Configuration(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 #endif
+#ifdef ENABLE_UART3_RPB11_TPB10
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+
+	/* Configure USART3_Tx as alternate push-pull */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+	/* Configure USART3_Rx as input floating */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+#endif
 }
 
 /***************************************
