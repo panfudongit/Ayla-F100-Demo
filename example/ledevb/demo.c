@@ -132,7 +132,11 @@ static int send_schedule(struct prop *prop, void *arg)
 }
 #endif
 
+static u8 send_from_host_ready = FALSE;
 
+#define PACKLEN 25
+u8 hostpack[PACKLEN];
+static u8 indexp;
 static s32 devices1_power;
 static s32 devices2_power;
 static s32 devices3_power;
@@ -165,9 +169,31 @@ static s32 devices13_temp;
 static s32 devices14_temp;
 static s32 devices15_temp;
 static s32 devices16_temp;
+static s32 devices1_stemp;
+static s32 devices2_stemp;
+static s32 devices3_stemp;
+static s32 devices4_stemp;
+static s32 devices5_stemp;
+static s32 devices6_stemp;
+static s32 devices7_stemp;
+static s32 devices8_stemp;
+static s32 devices9_stemp;
+static s32 devices10_stemp;
+static s32 devices11_stemp;
+static s32 devices12_stemp;
+static s32 devices13_stemp;
+static s32 devices14_stemp;
+static s32 devices15_stemp;
+static s32 devices16_stemp;
+static s32 devices_numbers;
+static s32 devices_status;
+
 static void set_devices_send_data(char data, char type, char devid, int len);
 static void set_devices_power(struct prop *prop, void *arg, void *valp, size_t len);
 static void set_devices_temp(struct prop *prop, void *arg, void *valp, size_t len);
+static void set_devices_sense_temp(struct prop *prop, void *arg, void *valp, size_t len);
+static void set_devices_numbers(struct prop *prop, void *arg, void *valp, size_t len);
+static void send_devices_status(struct prop *prop, void *arg, void *valp, size_t len);
 struct prop prop_table[] = {
 #define DEMO_VERSION       0
 	{ "version",          ATLV_UTF8, NULL,               send_version,      NULL,           0,                 AFMT_READ_ONLY},
@@ -235,6 +261,42 @@ struct prop prop_table[] = {
 	{ "devices15_work_temp",    ATLV_INT,  set_devices_temp,     prop_send_generic, &devices15_temp,    sizeof(devices15_temp)},
 #define DEVICES16_TEMP   32
 	{ "devices16_work_temp",    ATLV_INT,  set_devices_temp,     prop_send_generic, &devices16_temp,    sizeof(devices16_temp)},
+#define DEVICES1_SENSE_TEMP    33
+	{ "devices1_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices1_stemp,     sizeof(devices1_stemp)},
+#define DEVICES2_SENSE_TEMP    34
+	{ "devices2_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices2_stemp,     sizeof(devices2_stemp)},
+#define DEVICES3_SENSE_TEMP    35
+	{ "devices3_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices3_stemp,     sizeof(devices3_stemp)},
+#define DEVICES4_SENSE_TEMP    36
+	{ "devices4_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices4_stemp,     sizeof(devices4_stemp)},
+#define DEVICES5_SENSE_TEMP    37
+	{ "devices5_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices5_stemp,     sizeof(devices5_stemp)},
+#define DEVICES6_SENSE_TEMP    38
+	{ "devices6_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices6_stemp,     sizeof(devices6_stemp)},
+#define DEVICES7_SENSE_TEMP    39
+	{ "devices7_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices7_stemp,     sizeof(devices7_stemp)},
+#define DEVICES8_SENSE_TEMP    40
+	{ "devices8_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices8_stemp,     sizeof(devices8_stemp)},
+#define DEVICES9_SENSE_TEMP    41
+	{ "devices9_sense_temp",     ATLV_INT,  set_devices_sense_temp,      prop_send_generic, &devices9_stemp,     sizeof(devices9_stemp)},
+#define DEVICES10_SENSE_TEMP   42
+	{ "devices10_sense_temp",    ATLV_INT,  set_devices_sense_temp,     prop_send_generic, &devices10_stemp,    sizeof(devices10_stemp)},
+#define DEVICES11_SENSE_TEMP   43
+	{ "devices11_sense_temp",    ATLV_INT,  set_devices_sense_temp,     prop_send_generic, &devices11_stemp,    sizeof(devices11_stemp)},
+#define DEVICES12_SENSE_TEMP   44
+	{ "devices12_sense_temp",    ATLV_INT,  set_devices_sense_temp,     prop_send_generic, &devices12_stemp,    sizeof(devices12_stemp)},
+#define DEVICES13_SENSE_TEMP   45
+	{ "devices13_sense_temp",    ATLV_INT,  set_devices_sense_temp,     prop_send_generic, &devices13_stemp,    sizeof(devices13_stemp)},
+#define DEVICES14_SENSE_TEMP   46
+	{ "devices14_sense_temp",    ATLV_INT,  set_devices_sense_temp,     prop_send_generic, &devices14_stemp,    sizeof(devices14_stemp)},
+#define DEVICES15_SENSE_TEMP   47
+	{ "devices15_sense_temp",    ATLV_INT,  set_devices_sense_temp,     prop_send_generic, &devices15_stemp,    sizeof(devices15_stemp)},
+#define DEVICES16_SENSE_TEMP   48
+	{ "devices16_sense_temp",    ATLV_INT,  set_devices_sense_temp,     prop_send_generic, &devices16_stemp,    sizeof(devices16_stemp)},
+#define DEVICES_NUMBER         49
+	{ "devices_number",    ATLV_INT,  set_devices_numbers,     prop_send_generic, &devices_numbers,    sizeof(devices_numbers)},
+#define DEVICES_STATU         50
+	{ "devices_get_statu",    ATLV_INT,  send_devices_status,     prop_send_generic, &devices_status,    sizeof(devices_status)},	
 #define PROP_BUTTON 0
 	{ "output", ATLV_INT, NULL, prop_send_generic, &output,
 	    sizeof(output), AFMT_READ_ONLY},
@@ -279,6 +341,146 @@ struct prop prop_table[] = {
 	{ NULL }
 };
 u8 prop_count = (sizeof(prop_table) / sizeof(prop_table[0])) - 1;
+
+/****************************************
+* FUNC   :  clear buf and index
+*****************************************/
+void Clear_hostcmd_off()
+{
+	memset(hostpack, 0, PACKLEN);
+	indexp = 0;
+}
+
+void devices_statu_updata(int id, u8 data)
+{
+	*(s32 *)prop_table[id].arg = (s32)data; //send to the service data
+	prop_table[id].val_len = sizeof(u8);
+	prop_table[id].send_mask = ADS_BIT;
+
+}
+#define CMD_TYPE_ID 3
+#define PACK_DATA 6
+#define DATA_ID 4
+void multi_devices_statu_updata(u8 *hostpack, int packlen)
+{
+	u8 *hostcmd = hostpack;
+	int dev_id;
+	int cmd_type = hostcmd[CMD_TYPE_ID];
+	int dev_num = packlen - PACK_DATA;
+	int data_id = DATA_ID;
+
+	for(dev_id = 1; dev_id <= dev_num; dev_id++)
+	{
+		single_devices_statu_updata(dev_id, hostcmd[data_id++], cmd_type);
+	}
+}
+
+void single_devices_statu_updata(int dev_id, int val, int type)
+{
+	int id = dev_id;
+	int cmd_type  = type;
+
+	if(cmd_type == 0xF0) //devices power id <1, ...... 16>
+	{
+		if(val > 0x02) //data[4] power val
+				return;
+		id = id + 0;
+		devices_statu_updata(id, val);
+		return;
+	}
+	if(cmd_type == 0xF1) //devices work temp id <17, ...... 32>
+	{
+		if(val < 0x05 || val > 0x23) //data[4] set temp val
+				return;
+
+		id = id + 16;
+		devices_statu_updata(id, val);
+		return;
+	}
+	if(cmd_type == 0xF2) //devices sense temp id <33, ...... 48>
+	{
+		id = id + 32;
+		devices_statu_updata(id, val); //data[4] sense temp val
+		return;
+	}
+	if(cmd_type == 0xF3) //devices power id <49>
+	{
+		if(val > 0x10)  //devices number max 0x10
+		return;
+
+		id = DEVICES_NUMBER;  //id 49
+		devices_statu_updata(id, val);
+		return;
+	}
+	if(cmd_type == 0xF4) //host response
+	{
+		return;
+	}
+}
+
+u8 send_property_from_host( void )
+{
+	u8 *hostcmd = hostpack;
+	u8 hostcmd_len = indexp;
+	u8 packcrc = hostcmd[2];
+	int i;
+
+	if(hostcmd[0] != 0xF5 && hostcmd[hostcmd_len - 1] != 0xED)
+	{
+		Clear_hostcmd_off();
+		return FALSE;
+	}
+	for(i = 3; i < hostcmd_len - 2; i++)
+		packcrc = packcrc ^ hostcmd[i];
+
+	if(packcrc != hostcmd[hostcmd_len - 2]) //check crc
+	{
+		;
+	}
+	if(hostcmd_len == 0x07) //updata single devices of statu to server(cmd len = 7)
+	{
+		// hostcmd,  dev_id:2,  set_dev_val:4, cmd_type:3
+		single_devices_statu_updata(hostcmd[2], hostcmd[4], hostcmd[3]);
+		Clear_hostcmd_off();
+		return TRUE;
+	}
+	if(hostcmd_len > 0x07) //updata all devices of statu to server(cmd len > 7)
+	{
+		multi_devices_statu_updata(hostcmd, hostcmd_len);
+		Clear_hostcmd_off();
+		return TRUE;
+	}
+
+	return TRUE;
+}
+/****************************************
+* FUNC   :  receive host data of Byte
+*****************************************/
+void Receive_Host_Byte(u8 ch)
+{
+	USART_send_char((char)ch, COM3);
+
+	if((ch == 0xF5) && (indexp == 0) && hostpack[0] != 0xF5) 
+	{
+		hostpack[indexp] = ch;
+		indexp = indexp + 1;
+		return;
+	}
+	if(ch != 0xED && hostpack[0] == 0xF5)
+	{
+		hostpack[indexp] = ch;
+		indexp = indexp + 1;
+		return;
+	}
+	if(ch == 0xED && indexp == (hostpack[1] + 2))
+	{
+		hostpack[indexp] = ch;
+		indexp = indexp + 1;
+		send_from_host_ready = TRUE;  // host ready data up to the service
+		return;
+	}
+}
+
 #define NAME_LEN 21
 #define CMD_TYPE_POWER 0xF0
 #define CMD_TYPE_TEMP  0xF1
@@ -350,6 +552,22 @@ static void set_devices_temp(struct prop *prop, void *arg, void *valp, size_t le
 	return;
 }
 
+static void set_devices_sense_temp(struct prop *prop, void *arg, void *valp, size_t len)
+{
+		return;
+}
+static void set_devices_numbers(struct prop *prop, void *arg, void *valp, size_t len)
+{
+		return;
+}
+static void send_devices_status(struct prop *prop, void *arg, void *valp, size_t len)
+{
+	char data = *(char *)valp;
+	u8 dev_id = 0x00;
+
+	set_devices_send_data(data, CMD_TYPE_REQ, dev_id, 7);
+	return;
+}
 static void set_dec_in(struct prop *prop, void *arg, void *valp, size_t len)
 {
 	s32 i = *(s32 *)valp;
@@ -456,6 +674,11 @@ int main(int argc, char **argv)
 			 * Insert logic here to handle the failure.
 			 */
 			prop->send_err = 0;
+		}
+		if( send_from_host_ready )
+		{
+			send_property_from_host();
+			send_from_host_ready = FALSE;
 		}
 	}
 }

@@ -160,6 +160,7 @@ void USART1_IRQHandler(void)
 	if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
 	{
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+		Receive_Host_Byte( USART_ReceiveData(USART1) );
 	}
 	
 	if (USART_GetITStatus(USART1, USART_IT_TXE) != RESET)
@@ -398,6 +399,7 @@ void USART3_IRQHandler(void)
 	if (USART_GetITStatus(USART3, USART_IT_RXNE) != RESET)
 	{
 		USART_ClearITPendingBit(USART3, USART_IT_RXNE);
+		Receive_Host_Byte( USART_ReceiveData(USART3) );
 	}
 
 	if (USART_GetITStatus(USART3, USART_IT_TXE) != RESET)

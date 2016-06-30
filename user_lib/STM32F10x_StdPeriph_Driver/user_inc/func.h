@@ -1,6 +1,8 @@
 
 #include "stm32f10x.h"
 
+#define TRUE			1
+#define FALSE			0
 #define USER_DEBUG
 #define USER_DEBUG_COM 3
 void printd(char *p);
@@ -30,3 +32,10 @@ void delay_ms(u32 nms);
 ********************************************/
 void WirteFlash(int addoff, uint32_t *data, int wordn);
 uint32_t ReadFlash(int addoff);
+
+/**********************************************
+* prop func
+***********************************************/
+void Receive_Host_Byte(u8 ch);
+void single_devices_statu_updata(int dev_id, int val, int type);
+void multi_devices_statu_updata(u8 *hostpack, int packlen);
