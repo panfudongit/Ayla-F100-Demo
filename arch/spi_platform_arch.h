@@ -26,15 +26,28 @@
  * those of the authors and should not be interpreted as representing official
  * policies, either expressed or implied, of Ayla Networks, Inc.
  */
+#include <func.h>
 #ifndef __AYLA_SPI_PLATFORM_ARCH_H__
 #define __AYLA_SPI_PLATFORM_ARCH_H__
 
+#ifdef READ_PB10_INIT_PB11
 #define INTR_N_GPIO	GPIOB
 #define	INTR_N_PIN	11
+#endif
+#ifdef READ_PA12_INT_PA3
+#define INTR_N_GPIO	GPIOA
+#define	INTR_N_PIN	3
+#endif
 #define INTR_N_EXT_LINE	EXTI_Line11
 #define INTR_N_IRQ	EXTI15_10_IRQn
+#ifdef READ_PB10_INIT_PB11
 #define INTR_N_PORT_SOURCE GPIO_PortSourceGPIOB
 #define INTR_N_PIN_SOURCE GPIO_PinSource11
+#endif
+#ifdef READ_PA12_INT_PA3
+#define INTR_N_PORT_SOURCE GPIO_PortSourceGPIOA
+#define INTR_N_PIN_SOURCE GPIO_PinSource3
+#endif
 
 #define GP_SPI_GPIO	GPIOB
 #define GP_SPI_NSS	12

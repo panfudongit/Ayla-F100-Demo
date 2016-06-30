@@ -30,6 +30,7 @@
 #include <ayla/mcu_platform.h>
 //#include <stm32f1_discovery.h>
 #include "mcu_io.h"
+#include <func.h>
 
 void mcu_io_init(void)
 {
@@ -37,7 +38,7 @@ void mcu_io_init(void)
 	int i;
 
 	/* Enable GPIOA, GPIOB, and GPIOC clocks */
-//	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 
@@ -59,11 +60,18 @@ void mcu_io_init(void)
 	//GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
+#ifdef READ_PB10_INIT_PB11
 	/* Configure PB10 pin as input for READY_N */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
+#endif
+#ifdef READ_PA12_INT_PA3
+	/* Configure PA12 pin as input for READY_N */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+#endif
 
 #ifndef AYLA_UART /* UART mode on module uses PA0/WKUP as UART_CTS input */
 	/* Configure PB2 pin as output for WAKEUP */
