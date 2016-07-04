@@ -17,6 +17,7 @@ char USART_receive_char(int com);
 //#define ENABLE_UART2_RPA3_TPA2
 #define ENABLE_UART3
 #define ENABLE_UART3_RPC11_TPC10
+//#define ENABLE_UART3_RPB11_TPB10
 
 /********************************************
 * delay func
