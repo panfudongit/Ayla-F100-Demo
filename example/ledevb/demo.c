@@ -154,8 +154,52 @@ static int send_schedule(struct prop *prop, void *arg)
 }
 #endif
 
+static s32 devices_mode;
+static s32 devices_set_htemp;
+static s32 devices_set_btemp;
+static s32 devices_fcode;
+static s32 devices_work_htemp;
+static s32 devices_work_btemp;
+static s32 devices_iotemp;
+static s32 devices_scode;
+static s32 devices_cval;
+static s32 devices_wrate;
+static s32 devices_cpower;
+static s32 devices_exfunc;
+
+static void set_devices_mode(struct prop *prop, void *arg, void *valp, size_t len);
+static void set_devices_htemp(struct prop *prop, void *arg, void *valp, size_t len);
+static void set_devices_btemp(struct prop *prop, void *arg, void *valp, size_t len);
+static void devices_obligate_func(struct prop *prop, void *arg, void *valp, size_t len);
+static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t len);
 
 struct prop prop_table[] = {
+#define DEMO_VERSION         0
+	{ "version",               ATLV_UTF8, NULL,                  send_version,      NULL,                0,                 AFMT_READ_ONLY},
+#define DEVICES_MODE         1
+	{ "device_work_mode",      ATLV_INT,  set_devices_mode,      prop_send_generic, &devices_mode,       sizeof(devices_mode)},
+#define DEVICES_SET_HTEMP    2
+	{ "heating_set_temp",      ATLV_INT,  set_devices_htemp,     prop_send_generic, &devices_set_htemp,  sizeof(devices_set_htemp)},
+#define DEVICES3_SET_BTEMP   3
+	{ "bath_set_temp",         ATLV_INT,  set_devices_btemp,     prop_send_generic, &devices_set_btemp,  sizeof(devices_set_btemp)},
+#define DEVICES_FAULT_CODE   4
+	{ "device_fault_code",     ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_fcode,      sizeof(devices_fcode)},
+#define DEVICES_WORK_HTEMP   5
+	{ "heating_work_temp",     ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_work_htemp, sizeof(devices_work_htemp)},
+#define DEVICES_WORK_BTEMP   6
+	{ "bath_work_temp",        ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_work_btemp, sizeof(devices_work_btemp)},
+#define DEVICES_INOUT_TEMP   7
+	{ "indoor_outdoor_temp",   ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_iotemp,     sizeof(devices_iotemp)},
+#define DEVICES_STATUS_CODE  8
+	{ "status_code",           ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_scode,      sizeof(devices_scode)},
+#define DEVICES_CVAL         9
+	{ "gas_valve_current",     ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_cval,       sizeof(devices_cval)},
+#define DEVICES_WATER_RATE   10
+	{ "bath_water_rate",       ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_wrate,      sizeof(devices_wrate)},
+#define DEVICES_CUR_POWER    11
+	{ "devices_current_power", ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_cpower,     sizeof(devices_cpower)},
+#define DEVICES_EFUNC        12
+	{ "devices_expand_func",   ATLV_INT,  devices_expand_func,   prop_send_generic, &devices_exfunc,     sizeof(devices_exfunc)},
 	{ "Blue_button", ATLV_BOOL, NULL, prop_send_generic,
 	    &blue_button, sizeof(blue_button), AFMT_READ_ONLY},
 #define PROP_BUTTON 0
@@ -183,7 +227,6 @@ struct prop prop_table[] = {
 	{ "cmd", ATLV_UTF8, set_cmd, prop_send_generic, &cmd_buf[0]},
 	{ "input", ATLV_INT, set_input, prop_send_generic,
 	    &input, sizeof(input)},
-	{ "version", ATLV_UTF8, NULL, send_version, NULL, 0, AFMT_READ_ONLY},
 #ifdef DEMO_IMG_MGMT
 	{ "inactive_version", ATLV_UTF8, NULL, send_inactive_version, NULL,
 	  0, AFMT_READ_ONLY },
@@ -209,6 +252,83 @@ struct prop prop_table[] = {
 	{ NULL }
 };
 u8 prop_count = (sizeof(prop_table) / sizeof(prop_table[0])) - 1;
+
+#define CTRL_PANNEL     (0xAA)
+#define CTRL_COM        (1)
+#define DISPLAY_SCREEEN (0xBA)
+#define DISPLAY_COM     (3)
+#define CMD_HTEMP       (0xD0)
+#define CMD_BTEMP       (0xD1)
+#define CMD_MODE        (0xD2)
+#define ARGV1           (0x01)
+#define PACK_END        (0x0D)
+static void send_data_to_host(char data, char cmd_type, int com, char host)
+{
+		char pack[7];
+
+		pack[0] = host;      //direction to host
+		pack[1] = cmd_type;  //cmd type
+		pack[2] = ARGV1;      //arg1
+		pack[3] = data;      //arg2, val
+		pack[4] = pack[1] ^ pack[2] ^ pack[3]; //verif
+		pack[5] = PACK_END;  //end
+
+		USART_send_buf(pack, 6, com);
+}
+
+static void set_devices_mode(struct prop *prop, void *arg, void *valp, size_t len)
+{
+	char data = *(char *)valp;
+
+
+	/******************
+	* data == 0x00 dev off
+	* data == 0x03 dev summer mode on
+	* data == 0x05 dev winter mode on
+	*******************/
+	if(data == 0x00 || data == 0x03 || data == 0x05)
+	{
+		send_data_to_host(data, CMD_MODE, DISPLAY_COM, DISPLAY_SCREEEN);
+		send_data_to_host(data, CMD_MODE, CTRL_COM, CTRL_PANNEL);
+	}
+}
+
+static void set_devices_htemp(struct prop *prop, void *arg, void *valp, size_t len)
+{
+	char data = *(char *)valp;
+
+	/************************
+	* set heating temp of dev
+  * data (30, 85)
+	*************************/
+	if(data >= 0x1E && data <= 0x55)
+	{
+		send_data_to_host(data, CMD_HTEMP, DISPLAY_COM, DISPLAY_SCREEEN);
+		send_data_to_host(data, CMD_HTEMP, CTRL_COM, CTRL_PANNEL);
+	}
+}
+static void set_devices_btemp(struct prop *prop, void *arg, void *valp, size_t len)
+{
+	char data = *(char *)valp;
+	
+	/************************
+	* set bath temp of dev
+  * data (30, 60)
+	*************************/
+	if(data >= 0x1E && data <= 0x3C)
+	{
+		send_data_to_host(data, CMD_BTEMP, DISPLAY_COM, DISPLAY_SCREEEN);
+		send_data_to_host(data, CMD_BTEMP, CTRL_COM, CTRL_PANNEL);
+	}
+}
+static void devices_obligate_func(struct prop *prop, void *arg, void *valp, size_t len)
+{
+	;
+}
+static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t len)
+{
+	;
+}
 
 static void set_input(struct prop *prop, void *arg, void *valp, size_t len)
 {
