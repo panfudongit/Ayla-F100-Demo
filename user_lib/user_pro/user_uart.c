@@ -99,11 +99,11 @@ void USART1_Configuration(void)
 {
 	USART_InitTypeDef USART_InitStructure;
 
-	USART_InitStructure.USART_BaudRate = 9600;
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
-	USART_InitStructure.USART_HardwareFlowControl =USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_BaudRate = USART1_BaudRate;
+	USART_InitStructure.USART_WordLength = USART1_WordLength;
+	USART_InitStructure.USART_StopBits = USART1_StopBits;
+	USART_InitStructure.USART_Parity = USART1_Parity;
+	USART_InitStructure.USART_HardwareFlowControl =USART1_HardwareFlowControl;
 
 	USART_InitStructure.USART_Mode	=	USART_Mode_Rx | USART_Mode_Tx;
 
@@ -216,11 +216,11 @@ void USART2_Configuration(void)
 {
 	USART_InitTypeDef USART_InitStructure;
 
-	USART_InitStructure.USART_BaudRate = 9600;
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
-	USART_InitStructure.USART_HardwareFlowControl =USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_BaudRate = USART2_BaudRate;
+	USART_InitStructure.USART_WordLength = USART2_WordLength;
+	USART_InitStructure.USART_StopBits = USART2_StopBits;
+	USART_InitStructure.USART_Parity = USART2_Parity;
+	USART_InitStructure.USART_HardwareFlowControl =USART2_HardwareFlowControl;
 
 	USART_InitStructure.USART_Mode	=	USART_Mode_Rx | USART_Mode_Tx;
 
@@ -352,11 +352,11 @@ void USART3_Configuration(void)
 {
 	USART_InitTypeDef USART_InitStructure;
 
-	USART_InitStructure.USART_BaudRate = 9600;
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
-	USART_InitStructure.USART_HardwareFlowControl =USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_BaudRate = USART3_BaudRate;
+	USART_InitStructure.USART_WordLength = USART3_WordLength;
+	USART_InitStructure.USART_StopBits = USART3_StopBits;
+	USART_InitStructure.USART_Parity = USART3_Parity;
+	USART_InitStructure.USART_HardwareFlowControl =USART3_HardwareFlowControl;
 
 	USART_InitStructure.USART_Mode	=	USART_Mode_Rx | USART_Mode_Tx;
 
