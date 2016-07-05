@@ -1,6 +1,12 @@
 
 #include "stm32f10x.h"
 
+#define READ_PB10_INIT_PB11
+//#define READ_PA12_INT_PA3
+//#define USER_SPI1
+#define USER_SPI2
+#define TRUE			1
+#define FALSE			0
 #define USER_DEBUG
 #define USER_DEBUG_COM 3
 void printd(char *p);

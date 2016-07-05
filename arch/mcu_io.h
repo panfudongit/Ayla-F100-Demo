@@ -26,6 +26,7 @@
  * those of the authors and should not be interpreted as representing official
  * policies, either expressed or implied, of Ayla Networks, Inc.
  */
+#include <func.h>
 #ifndef __AYLA_MCU_IO_H__
 #define __AYLA_MCU_IO_H__
 
@@ -48,8 +49,14 @@
 #define BUTTON1_GPIO	GPIOC
 #define BUTTON1_PIN	0
 
+#ifdef READ_PA12_INT_PA3
+#define READY_N_GPIO	GPIOA
+#define READY_N_PIN	12
+#endif
+#ifdef READ_PB10_INIT_PB11
 #define READY_N_GPIO	GPIOB
 #define READY_N_PIN	10
+#endif
 
 #define RESET_N_GPIO	GPIOC
 #define RESET_N_PIN			6
