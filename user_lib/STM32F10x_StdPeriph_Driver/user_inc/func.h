@@ -53,3 +53,6 @@ void delay_ms(u32 nms);
 ********************************************/
 void WirteFlash(int addoff, uint32_t *data, int wordn);
 uint32_t ReadFlash(int addoff);
+
+void Receive_Ctrl_Board_Byte(char ch);
+void Receive_display_Byte(char ch);

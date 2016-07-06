@@ -167,6 +167,15 @@ static s32 devices_wrate;
 static s32 devices_cpower;
 static s32 devices_exfunc;
 
+static u8 send_from_ctrl_board_ready = FALSE;
+static u8 send_from_ctrl_display_ready = FALSE;
+#define BOARD_LEN 6
+static char ctrl_board_pack[BOARD_LEN];
+static int index_board = 0;
+#define DISPLAY_LEN 6
+static char ctrl_display_pack[DISPLAY_LEN];
+static int index_display = 0;
+
 static void set_devices_mode(struct prop *prop, void *arg, void *valp, size_t len);
 static void set_devices_htemp(struct prop *prop, void *arg, void *valp, size_t len);
 static void set_devices_btemp(struct prop *prop, void *arg, void *valp, size_t len);
@@ -262,6 +271,168 @@ u8 prop_count = (sizeof(prop_table) / sizeof(prop_table[0])) - 1;
 #define CMD_MODE        (0xD2)
 #define ARGV1           (0x01)
 #define PACK_END        (0x0D)
+
+void Clean_ctrl_board()
+{
+	memset(ctrl_board_pack, 0, BOARD_LEN);
+	index_board = 0;
+}
+
+void Clean_ctrl_display()
+{
+	memset(ctrl_display_pack, 0, DISPLAY_LEN);
+	index_display = 0;
+}
+
+/****************************************************************
+* FUNC   :  receive dispaly data of Byte
+* uart3  :
+********************************************************************/
+void Receive_display_Byte(char ch)
+{
+	USART_send_char((char)ch, 3);
+
+	if((ch == (char)0xAA) && (index_display == 0) && ctrl_display_pack[0] != (char)0xAA) 
+	{
+		ctrl_display_pack[index_display++] = ch;
+		return;
+	}
+	if(ch == (char)0x0D && index_display == (BOARD_LEN - 1))
+	{
+		ctrl_display_pack[index_display++] = ch;
+		send_from_ctrl_display_ready = TRUE;  // host ready data up to the service
+		return;
+	}
+	ctrl_display_pack[index_display++] = ch;
+	return;
+}
+
+u8 send_property_from_ctrl_display( void )
+{
+	char *boardcmd = ctrl_display_pack;
+	int hostcmd_len = index_display;
+	int arg2_id = 0;
+
+	// board cmd B0:0xAA, end 0x0D
+	if(boardcmd[0] != (char)0xAA && hostcmd_len == BOARD_LEN && boardcmd[hostcmd_len - 1] != (char)0x0D)
+	{
+		Clean_ctrl_display();
+		return FALSE;
+	}
+
+	// send cmd to master board
+	USART_send_buf(boardcmd, hostcmd_len, CTRL_COM);
+	if(boardcmd[1] == (char)0xD0) //heating work temp and set temp
+	{
+		arg2_id = DEVICES_SET_HTEMP;
+	}
+	if(boardcmd[1] == (char)0xD1) //bath work temp
+	{
+		arg2_id = DEVICES3_SET_BTEMP;
+	}
+	if(boardcmd[1] == (char)0xD2) //devices mode
+	{
+		arg2_id = DEVICES_MODE;
+	}
+
+	if(arg2_id > 0)
+	{
+		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
+		prop_table[arg2_id].val_len = sizeof(char);
+		prop_table[arg2_id].send_mask = ADS_BIT;
+	}
+
+	Clean_ctrl_display();
+	return TRUE;
+}
+
+/****************************************************************
+* FUNC   :  receive master board  data of Byte
+* uart1  :  B0:0xAA, B1:cmd, B2:arg1, B3:arg2, B4:crc, B5:end(0x0D)
+********************************************************************/
+void Receive_Ctrl_Board_Byte(char ch)
+{
+	USART_send_char((char)ch, 1);
+
+	if((ch == (char)0xAA) && (index_board == 0) && ctrl_board_pack[0] != (char)0xAA) 
+	{
+		ctrl_board_pack[index_board++] = ch;
+		return;
+	}
+	if(ch == (char)0x0D && index_board == (BOARD_LEN - 1))
+	{
+		ctrl_board_pack[index_board++] = ch;
+		send_from_ctrl_board_ready = TRUE;  // host ready data up to the service
+		return;
+	}
+	ctrl_board_pack[index_board++] = ch;
+	return;
+}
+
+u8 send_property_from_ctrl_board( void )
+{
+	char *boardcmd = ctrl_board_pack;
+	int hostcmd_len = index_board;
+	int arg1_id = 0;
+	int arg2_id = 0;
+
+	// board cmd B0:0xAA, end 0x0D
+	if(boardcmd[0] != (char)0xAA && hostcmd_len == BOARD_LEN && boardcmd[hostcmd_len - 1] != (char)0x0D)
+	{
+		Clean_ctrl_board();
+		return FALSE;
+	}
+
+	// send cmd to display
+	USART_send_buf(boardcmd, hostcmd_len, DISPLAY_COM);
+	if(boardcmd[1] == (char)0xD0) //heating work temp and set temp
+	{
+		arg1_id = DEVICES_SET_HTEMP;
+		arg2_id = DEVICES_WORK_HTEMP;
+	}
+	if(boardcmd[1] == (char)0xD1) //bath work temp
+	{
+		arg1_id = DEVICES3_SET_BTEMP;
+		arg2_id = DEVICES_WORK_BTEMP;
+	}
+	if(boardcmd[1] == (char)0xD2) //devices status
+	{
+		arg1_id = DEVICES_CUR_POWER;
+		arg2_id = DEVICES_INOUT_TEMP;
+	}
+	if(boardcmd[1] == (char)0xD5) //failt code
+	{
+		arg1_id = 0;
+		arg2_id = DEVICES_FAULT_CODE;
+	}
+	if(boardcmd[1] == (char)0xD6) //bath weter and status code
+	{
+		arg1_id = DEVICES_WATER_RATE;
+		arg2_id = DEVICES_STATUS_CODE;
+	}
+	if(boardcmd[1] == (char)0xD8) //current
+	{
+		arg1_id = 0;
+		arg2_id = DEVICES_CVAL;
+	}
+
+	if(arg1_id > 0)
+	{
+		*(s32 *)prop_table[arg1_id].arg = (s32)boardcmd[2];
+		prop_table[arg1_id].val_len = sizeof(char);
+		prop_table[arg1_id].send_mask = ADS_BIT;
+	}
+	if(arg2_id > 0)
+	{
+		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
+		prop_table[arg2_id].val_len = sizeof(char);
+		prop_table[arg2_id].send_mask = ADS_BIT;
+	}
+
+	Clean_ctrl_board();
+	return TRUE;
+}
+
 static void send_data_to_host(char data, char cmd_type, int com, char host)
 {
 		char pack[7];
@@ -463,6 +634,16 @@ int main(int argc, char **argv)
 			 * Insert logic here to handle the failure.
 			 */
 			prop->send_err = 0;
+		}
+		if( send_from_ctrl_board_ready )
+		{
+				send_property_from_ctrl_board();
+				send_from_ctrl_board_ready = FALSE;
+		}
+		if( send_from_ctrl_display_ready )
+		{
+				send_property_from_ctrl_display();
+				send_from_ctrl_display_ready = FALSE;
 		}
 	}
 }
