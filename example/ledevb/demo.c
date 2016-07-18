@@ -330,13 +330,9 @@ u8 send_property_from_ctrl_display( void )
 	{
 		arg2_id = DEVICES3_SET_BTEMP;
 	}
-	if(boardcmd[1] == (char)0xD2) //devices mode
+	if(boardcmd[1] == (char)0xD2) //devices mode, real time sync to server
 	{
 		arg2_id = DEVICES_MODE;
-	}
-
-	if(arg2_id > 0)
-	{
 		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
 		prop_table[arg2_id].val_len = sizeof(char);
 		prop_table[arg2_id].send_mask = ADS_BIT;
@@ -395,38 +391,37 @@ u8 send_property_from_ctrl_board( void )
 		arg1_id = DEVICES3_SET_BTEMP;
 		arg2_id = DEVICES_WORK_BTEMP;
 	}
-	if(boardcmd[1] == (char)0xD2) //devices status
+	if(boardcmd[1] == (char)0xD2) //devices mode, real time sync to server
 	{
-		arg1_id = DEVICES_CUR_POWER;
+		arg1_id = DEVICES_MODE;
+		*(s32 *)prop_table[arg1_id].arg = (s32)boardcmd[2];
+		prop_table[arg1_id].val_len = sizeof(char);
+		prop_table[arg1_id].send_mask = ADS_BIT;
+
 		arg2_id = DEVICES_INOUT_TEMP;
 	}
-	if(boardcmd[1] == (char)0xD5) //failt code
+	if(boardcmd[1] == (char)0xD5) //failt code, real time sync to server
 	{
 		arg1_id = 0;
+
 		arg2_id = DEVICES_FAULT_CODE;
+		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
+		prop_table[arg2_id].val_len = sizeof(char);
+		prop_table[arg2_id].send_mask = ADS_BIT;
 	}
-	if(boardcmd[1] == (char)0xD6) //bath weter and status code
+	if(boardcmd[1] == (char)0xD6) //bath weter and status code, real time sync to server
 	{
 		arg1_id = DEVICES_WATER_RATE;
+
 		arg2_id = DEVICES_STATUS_CODE;
+		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
+		prop_table[arg2_id].val_len = sizeof(char);
+		prop_table[arg2_id].send_mask = ADS_BIT;
 	}
 	if(boardcmd[1] == (char)0xD8) //current
 	{
 		arg1_id = 0;
 		arg2_id = DEVICES_CVAL;
-	}
-
-	if(arg1_id > 0)
-	{
-		*(s32 *)prop_table[arg1_id].arg = (s32)boardcmd[2];
-		prop_table[arg1_id].val_len = sizeof(char);
-		prop_table[arg1_id].send_mask = ADS_BIT;
-	}
-	if(arg2_id > 0)
-	{
-		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
-		prop_table[arg2_id].val_len = sizeof(char);
-		prop_table[arg2_id].send_mask = ADS_BIT;
 	}
 
 	Clean_ctrl_board();
