@@ -58,3 +58,24 @@ uint32_t ReadFlash(int addoff);
 
 void Receive_Ctrl_Board_Byte(char ch);
 void Receive_display_Byte(char ch);
+
+/******************************************************
+* #define DEVICES_MODE         1    "device_work_mode"
+* #define DEVICES_SET_HTEMP    2    "heating_set_temp"
+* #define DEVICES3_SET_BTEMP   3    "bath_set_temp"
+* #define DEVICES_FAULT_CODE   4    "device_fault_code"
+* #define DEVICES_WORK_HTEMP   5    "heating_work_temp"
+* #define DEVICES_WORK_BTEMP   6    "bath_work_temp"
+* #define DEVICES_INOUT_TEMP   7    "indoor_outdoor_temp"
+* #define DEVICES_STATUS_CODE  8    "status_code"
+* #define DEVICES_CVAL         9    "gas_valve_current"
+* #define DEVICES_WATER_RATE   10   "bath_water_rate"
+* #define DEVICES_EFUNC        11   "devices_expand_func"
+* #define DEVICES_GTEMP        12   "devices_gas_temp"
+* #define DEVICES_WLEVEL       13   "condensate_water_level"
+* #define DEVICES_HWTEMP       14   "heating_water_temp"
+* #define DEVICES_BWTEMP       15   "bath_water_temp"
+* #define DEVICES_PVOLTAGE     16   "devices_power_voltage"
+* #define DEVICES_FTACHOME     17   "fan_tachometer"
+* #define DEVICES_RSTATUS      18   "request_status"
+************************************************************/
