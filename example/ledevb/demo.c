@@ -164,8 +164,14 @@ static s32 devices_iotemp;
 static s32 devices_scode;
 static s32 devices_cval;
 static s32 devices_wrate;
-static s32 devices_cpower;
 static s32 devices_exfunc;
+static s32 devices_gtemp;
+static s32 devices_wlevel;
+static s32 devices_hwtemp;
+static s32 devices_bwtemp;
+static s32 devices_pvoltage;
+static s32 devices_ftachome;
+static s32 devices_rstatus;
 
 static u8 send_from_ctrl_board_ready = FALSE;
 static u8 send_from_ctrl_display_ready = FALSE;
@@ -181,6 +187,7 @@ static void set_devices_htemp(struct prop *prop, void *arg, void *valp, size_t l
 static void set_devices_btemp(struct prop *prop, void *arg, void *valp, size_t len);
 static void devices_obligate_func(struct prop *prop, void *arg, void *valp, size_t len);
 static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t len);
+static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t len);
 
 struct prop prop_table[] = {
 #define DEMO_VERSION         0
@@ -205,10 +212,22 @@ struct prop prop_table[] = {
 	{ "gas_valve_current",     ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_cval,       sizeof(devices_cval)},
 #define DEVICES_WATER_RATE   10
 	{ "bath_water_rate",       ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_wrate,      sizeof(devices_wrate)},
-#define DEVICES_CUR_POWER    11
-	{ "devices_current_power", ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_cpower,     sizeof(devices_cpower)},
-#define DEVICES_EFUNC        12
-	{ "devices_expand_func",   ATLV_INT,  devices_expand_func,   prop_send_generic, &devices_exfunc,     sizeof(devices_exfunc)},
+#define DEVICES_EFUNC        11
+	{ "devices_expand_func",   ATLV_INT,  devices_expand_func,   prop_send_generic, &devices_exfunc,     sizeof(devices_exfunc)},	
+#define DEVICES_GTEMP        12
+	{ "devices_gas_temp",      ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_gtemp,      sizeof(devices_gtemp)},
+#define DEVICES_WLEVEL       13
+	{ "condensate_water_level",ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_wlevel,     sizeof(devices_wlevel)},
+#define DEVICES_HWTEMP       14
+	{ "heating_water_temp",    ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_hwtemp,     sizeof(devices_hwtemp)},
+#define DEVICES_BWTEMP       15
+	{ "bath_water_temp",       ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_bwtemp,     sizeof(devices_bwtemp)},
+#define DEVICES_PVOLTAGE     16
+	{ "devices_power_voltage", ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_pvoltage,   sizeof(devices_pvoltage)},
+#define DEVICES_FTACHOME     17
+	{ "fan_tachometer",        ATLV_INT,  devices_obligate_func, prop_send_generic, &devices_ftachome,   sizeof(devices_ftachome)},
+#define DEVICES_RSTATUS      18
+	{ "request_status",        ATLV_INT,  request_dev_status,    prop_send_generic, &devices_rstatus,    sizeof(devices_rstatus)},
 	{ "Blue_button", ATLV_BOOL, NULL, prop_send_generic,
 	    &blue_button, sizeof(blue_button), AFMT_READ_ONLY},
 #define PROP_BUTTON 0
@@ -496,6 +515,10 @@ static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t
 	;
 }
 
+static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t len)
+{
+	;
+}
 static void set_input(struct prop *prop, void *arg, void *valp, size_t len)
 {
 	s32 i = *(s32 *)valp;
