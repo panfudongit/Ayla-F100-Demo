@@ -50,6 +50,7 @@ void delay_ms(u32 nms);
 
 #define TIM3_ENABLE
 void TIM3_Init(int ms);
+void TIM3_Min_Init(void);
 /********************************************
 *internal flash rw
 ********************************************/

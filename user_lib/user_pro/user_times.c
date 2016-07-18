@@ -48,6 +48,26 @@ void TIMER_cfg(int ms)
 	
 }
 
+void TIMER_min_cfg(void)
+{
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+
+	TIM_DeInit(TIM3);
+
+	TIM_InternalClockConfig(TIM3);
+
+	TIM_TimeBaseStructure.TIM_Prescaler = (Prescaler * 5) - 1;
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period = (Period * 12000) - 1;
+
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+	TIM_ClearFlag(TIM3, TIM_FLAG_Update);
+	TIM_ARRPreloadConfig(TIM3, DISABLE);
+	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+}
+
 void NVCC_Timer_cfg(void)
 {
 	NVIC_InitTypeDef NVIC_InitStructure;
@@ -67,6 +87,13 @@ void TIM3_Init(int ms)
 	TIMER_cfg(ms);
 	NVCC_Timer_cfg();	
 // 	TIM_Cmd(TIM3, ENABLE);
+}
+
+void TIM3_Min_Init()
+{
+	RCC_Timer();
+	TIMER_min_cfg();
+	NVCC_Timer_cfg();
 }
 
 void TIM3_IRQHandler(void)
