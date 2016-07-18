@@ -189,6 +189,12 @@ static void devices_obligate_func(struct prop *prop, void *arg, void *valp, size
 static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t len);
 static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t len);
 
+#define USER_MAX 20
+static int user_data[USER_MAX];
+#define USER_SYNCA_LEN 4
+static int user_synca[] = {2, 3, 5, 6};
+#define USER_SYNCB_LEN 10
+static int user_syncb[] = {7, 9, 10, 11, 12, 13, 14, 15, 16, 17};
 struct prop prop_table[] = {
 #define DEMO_VERSION         0
 	{ "version",               ATLV_UTF8, NULL,                  send_version,      NULL,                0,                 AFMT_READ_ONLY},
@@ -330,7 +336,6 @@ u8 send_property_from_ctrl_display( void )
 {
 	char *boardcmd = ctrl_display_pack;
 	int hostcmd_len = index_display;
-	int arg2_id = 0;
 
 	// board cmd B0:0xAA, end 0x0D
 	if(boardcmd[0] != (char)0xAA && hostcmd_len == BOARD_LEN && boardcmd[hostcmd_len - 1] != (char)0x0D)
@@ -343,22 +348,30 @@ u8 send_property_from_ctrl_display( void )
 	USART_send_buf(boardcmd, hostcmd_len, CTRL_COM);
 	if(boardcmd[1] == (char)0xD0) //heating work temp and set temp
 	{
-		arg2_id = DEVICES_SET_HTEMP;
+		*(s32 *)prop_table[DEVICES_SET_HTEMP].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_SET_HTEMP].val_len = sizeof(s32);
+		user_data[DEVICES_SET_HTEMP] = 1;
+		Clean_ctrl_display();
+		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD1) //bath work temp
 	{
-		arg2_id = DEVICES3_SET_BTEMP;
+		*(s32 *)prop_table[DEVICES3_SET_BTEMP].arg = (s32)boardcmd[3];
+		prop_table[DEVICES3_SET_BTEMP].val_len = sizeof(s32);
+		user_data[DEVICES3_SET_BTEMP] = 1;
+		Clean_ctrl_display();
+		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD2) //devices mode, real time sync to server
 	{
-		arg2_id = DEVICES_MODE;
-		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
-		prop_table[arg2_id].val_len = sizeof(char);
-		prop_table[arg2_id].send_mask = ADS_BIT;
+		*(s32 *)prop_table[DEVICES_MODE].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_MODE].val_len = sizeof(s32);
+		prop_table[DEVICES_MODE].send_mask = ADS_BIT;
+		Clean_ctrl_display();
+		return TRUE;
 	}
-
-	Clean_ctrl_display();
-	return TRUE;
+		Clean_ctrl_display();
+		return TRUE;
 }
 
 /****************************************************************
@@ -388,8 +401,6 @@ u8 send_property_from_ctrl_board( void )
 {
 	char *boardcmd = ctrl_board_pack;
 	int hostcmd_len = index_board;
-	int arg1_id = 0;
-	int arg2_id = 0;
 
 	// board cmd B0:0xAA, end 0x0D
 	if(boardcmd[0] != (char)0xAA && hostcmd_len == BOARD_LEN && boardcmd[hostcmd_len - 1] != (char)0x0D)
@@ -402,45 +413,99 @@ u8 send_property_from_ctrl_board( void )
 	USART_send_buf(boardcmd, hostcmd_len, DISPLAY_COM);
 	if(boardcmd[1] == (char)0xD0) //heating work temp and set temp
 	{
-		arg1_id = DEVICES_SET_HTEMP;
-		arg2_id = DEVICES_WORK_HTEMP;
+		*(s32 *)prop_table[DEVICES_SET_HTEMP].arg = (s32)boardcmd[2];
+		prop_table[DEVICES_SET_HTEMP].val_len = sizeof(s32);
+		user_data[DEVICES_SET_HTEMP] = 1;
+
+		*(s32 *)prop_table[DEVICES_WORK_HTEMP].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_WORK_HTEMP].val_len = sizeof(s32);
+		user_data[DEVICES_WORK_HTEMP] = 1;
+		Clean_ctrl_board();
+		return TRUE;
 	}
-	if(boardcmd[1] == (char)0xD1) //bath work temp
+	if(boardcmd[1] == (char)0xD1) //bath work temp and set temp
 	{
-		arg1_id = DEVICES3_SET_BTEMP;
-		arg2_id = DEVICES_WORK_BTEMP;
+		*(s32 *)prop_table[DEVICES3_SET_BTEMP].arg = (s32)boardcmd[2];
+		prop_table[DEVICES3_SET_BTEMP].val_len = sizeof(s32);
+		user_data[DEVICES3_SET_BTEMP] = 1;
+
+		*(s32 *)prop_table[DEVICES_WORK_BTEMP].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_WORK_BTEMP].val_len = sizeof(s32);
+		user_data[DEVICES_WORK_BTEMP] = 1;
+		Clean_ctrl_board();
+		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD2) //devices mode, real time sync to server
 	{
-		arg1_id = DEVICES_MODE;
-		*(s32 *)prop_table[arg1_id].arg = (s32)boardcmd[2];
-		prop_table[arg1_id].val_len = sizeof(char);
-		prop_table[arg1_id].send_mask = ADS_BIT;
+		*(s32 *)prop_table[DEVICES_MODE].arg = (s32)boardcmd[2];
+		prop_table[DEVICES_MODE].val_len = sizeof(s32);
+		prop_table[DEVICES_MODE].send_mask = ADS_BIT;
 
-		arg2_id = DEVICES_INOUT_TEMP;
+		*(s32 *)prop_table[DEVICES_INOUT_TEMP].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_INOUT_TEMP].val_len = sizeof(s32);
+		user_data[DEVICES_INOUT_TEMP] = 1;
+		Clean_ctrl_board();
+		return TRUE;
+	}
+	if(boardcmd[1] == (char)0xD3) //devices gas temp, and water level
+	{
+		*(s32 *)prop_table[DEVICES_GTEMP].arg = (s32)boardcmd[2];
+		prop_table[DEVICES_GTEMP].val_len = sizeof(s32);
+		user_data[DEVICES_GTEMP] = 1;
+
+		*(s32 *)prop_table[DEVICES_WLEVEL].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_WLEVEL].val_len = sizeof(s32);
+		user_data[DEVICES_WLEVEL] = 1;
+		Clean_ctrl_board();
+		return TRUE;
+	}
+	if(boardcmd[1] == (char)0xD4) //devices heating_water_temp and bath_water_temp
+	{
+		*(s32 *)prop_table[DEVICES_HWTEMP].arg = (s32)boardcmd[2];
+		prop_table[DEVICES_HWTEMP].val_len = sizeof(s32);
+		user_data[DEVICES_HWTEMP] = 1;
+
+		*(s32 *)prop_table[DEVICES_BWTEMP].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_BWTEMP].val_len = sizeof(s32);
+		user_data[DEVICES_BWTEMP] = 1;
+		Clean_ctrl_board();
+		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD5) //failt code, real time sync to server
 	{
-		arg1_id = 0;
+		*(s32 *)prop_table[DEVICES_PVOLTAGE].arg = (s32)boardcmd[2];
+		prop_table[DEVICES_PVOLTAGE].val_len = sizeof(s32);
+		user_data[DEVICES_PVOLTAGE] = 1;
 
-		arg2_id = DEVICES_FAULT_CODE;
-		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
-		prop_table[arg2_id].val_len = sizeof(char);
-		prop_table[arg2_id].send_mask = ADS_BIT;
+		*(s32 *)prop_table[DEVICES_FAULT_CODE].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_FAULT_CODE].val_len = sizeof(s32);
+		prop_table[DEVICES_FAULT_CODE].send_mask = ADS_BIT;
+		Clean_ctrl_board();
+		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD6) //bath weter and status code, real time sync to server
 	{
-		arg1_id = DEVICES_WATER_RATE;
+		*(s32 *)prop_table[DEVICES_WATER_RATE].arg = (s32)boardcmd[2];
+		prop_table[DEVICES_WATER_RATE].val_len = sizeof(s32);
+		user_data[DEVICES_WATER_RATE] = 1;
 
-		arg2_id = DEVICES_STATUS_CODE;
-		*(s32 *)prop_table[arg2_id].arg = (s32)boardcmd[3];
-		prop_table[arg2_id].val_len = sizeof(char);
-		prop_table[arg2_id].send_mask = ADS_BIT;
+		*(s32 *)prop_table[DEVICES_STATUS_CODE].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_STATUS_CODE].val_len = sizeof(s32);
+		prop_table[DEVICES_STATUS_CODE].send_mask = ADS_BIT;
+		Clean_ctrl_board();
+		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD8) //current
 	{
-		arg1_id = 0;
-		arg2_id = DEVICES_CVAL;
+		*(s32 *)prop_table[DEVICES_FTACHOME].arg = (s32)boardcmd[2];
+		prop_table[DEVICES_FTACHOME].val_len = sizeof(s32);
+		user_data[DEVICES_FTACHOME] = 1;
+
+		*(s32 *)prop_table[DEVICES_CVAL].arg = (s32)boardcmd[3];
+		prop_table[DEVICES_CVAL].val_len = sizeof(s32);
+		user_data[DEVICES_CVAL] = 1;
+		Clean_ctrl_board();
+		return TRUE;
 	}
 
 	Clean_ctrl_board();
@@ -517,7 +582,33 @@ static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t
 
 static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t len)
 {
-	;
+	char data = *(char *)valp;
+	int i = 0;
+
+	if(data == (char)0x01)
+	{
+		USART_send_char((char)0xcc, 1);
+		for(i = 0; i < USER_SYNCA_LEN; i++)
+		{
+			if(user_data[user_synca[i]] == 1)
+			{
+				prop_table[user_synca[i]].send_mask = ADS_BIT;
+				user_data[user_synca[i]] = 0;
+			}
+		}
+	}
+	if(data == (char)0x02)
+	{
+		USART_send_char((char)0xdd, 1);
+		for(i = 0; i < USER_SYNCB_LEN; i++)
+		{
+			if(user_data[user_syncb[i]] == 1)
+			{
+				prop_table[user_syncb[i]].send_mask = ADS_BIT;
+				user_data[user_synca[i]] = 0;
+			}
+		}
+	}
 }
 static void set_input(struct prop *prop, void *arg, void *valp, size_t len)
 {
