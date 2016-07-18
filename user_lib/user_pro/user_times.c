@@ -15,7 +15,7 @@
 
 #ifdef TIM3_ENABLE
 
-#define Prescaler 36000
+#define Prescaler 12000
 #define Period 2
 void RCC_Timer(void)
 {	
@@ -74,7 +74,7 @@ void TIM3_IRQHandler(void)
 	if(TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
 	{
 		TIM_ClearITPendingBit(TIM3, TIM_FLAG_Update);
-		USART1_send_char('a');
+		USART_send_char('a', 1);
 	}
 }
 
