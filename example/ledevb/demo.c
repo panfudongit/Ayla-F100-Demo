@@ -503,6 +503,7 @@ static void set_devices_mode(struct prop *prop, void *arg, void *valp, size_t le
 	*******************/
 	if(data == (char)0x00 || data == (char)0x03 || data == (char)0x05)
 	{
+		*(s32 *)prop_table[DEVICES_MODE].arg = *(s32 *)valp;
 		send_data_to_host(data, CMD_MODE, DISPLAY_COM, DISPLAY_SCREEEN);
 		send_data_to_host(data, CMD_MODE, CTRL_COM, CTRL_PANNEL);
 	}
@@ -518,6 +519,7 @@ static void set_devices_htemp(struct prop *prop, void *arg, void *valp, size_t l
 	*************************/
 	if(data >= (char)0x1E && data <= (char)0x55)
 	{
+		*(s32 *)prop_table[DEVICES_SET_HTEMP].arg = *(s32 *)valp;
 		send_data_to_host(data, CMD_HTEMP, DISPLAY_COM, DISPLAY_SCREEEN);
 		send_data_to_host(data, CMD_HTEMP, CTRL_COM, CTRL_PANNEL);
 	}
@@ -532,6 +534,7 @@ static void set_devices_btemp(struct prop *prop, void *arg, void *valp, size_t l
 	*************************/
 	if(data >= (char)0x1E && data <= (char)0x3C)
 	{
+		*(s32 *)prop_table[DEVICES3_SET_BTEMP].arg = *(s32 *)valp;
 		send_data_to_host(data, CMD_BTEMP, DISPLAY_COM, DISPLAY_SCREEEN);
 		send_data_to_host(data, CMD_BTEMP, CTRL_COM, CTRL_PANNEL);
 	}
@@ -558,7 +561,6 @@ static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t 
 			if(user_data[user_synca[i]] == 1)
 			{
 				prop_table[user_synca[i]].send_mask = ADS_BIT;
-				user_data[user_synca[i]] = 0;
 			}
 		}
 	}
@@ -570,7 +572,6 @@ static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t 
 			if(user_data[user_syncb[i]] == 1)
 			{
 				prop_table[user_syncb[i]].send_mask = ADS_BIT;
-				user_data[user_synca[i]] = 0;
 			}
 		}
 	}
