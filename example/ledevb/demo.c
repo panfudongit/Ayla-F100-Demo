@@ -175,6 +175,7 @@ static s32 devices_rstatus;
 
 static u8 send_from_ctrl_board_ready = FALSE;
 static u8 send_from_ctrl_display_ready = FALSE;
+static u8 host_timeout_ready = FALSE;
 #define BOARD_LEN 6
 static char ctrl_board_pack[BOARD_LEN];
 static int index_board = 0;
@@ -189,7 +190,8 @@ static void devices_obligate_func(struct prop *prop, void *arg, void *valp, size
 static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t len);
 static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t len);
 
-#define USER_MAX 20
+static int count = 0;
+#define USER_MAX 19
 static int user_data[USER_MAX];
 #define USER_SYNCA_LEN 4
 static int user_synca[] = {2, 3, 5, 6};
@@ -379,6 +381,31 @@ u8 send_property_from_ctrl_display( void )
 		return TRUE;
 }
 
+void send_host_sync_property( void)
+{
+	int i = 1;
+
+	for(i = 1; i < USER_MAX; i++)
+	{
+		if(user_data[i] == 1)
+		{
+			prop_table[i].send_mask = ADS_BIT;
+		}
+	}
+
+	host_timeout_ready = FALSE;
+}
+
+void timeout_set_send_flag(void)
+{
+	if(count == 5)
+	{
+		count = 0;
+		host_timeout_ready = TRUE;
+		return;
+	}
+	count = count + 1;
+}
 /****************************************************************
 * FUNC   :  receive master board  data of Byte
 * uart1  :  B0:0xAA, B1:cmd, B2:arg1, B3:arg2, B4:crc, B5:end(0x0D)
@@ -646,6 +673,8 @@ int main(int argc, char **argv)
 	struct prop *prop;
 
 	USART_init();
+	TIM3_Min_Init();
+	TIM_Cmd(TIM3, ENABLE);
 	feature_mask |= MCU_LAN_SUPPORT;
 #ifdef DEMO_IMG_MGMT
 	mcu_img_mgmt_init();
@@ -719,6 +748,11 @@ int main(int argc, char **argv)
 		{
 				send_property_from_ctrl_display();
 				send_from_ctrl_display_ready = FALSE;
+		}
+		if( host_timeout_ready )
+		{
+				send_host_sync_property();
+				host_timeout_ready = FALSE;
 		}
 	}
 }

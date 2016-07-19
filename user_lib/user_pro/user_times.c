@@ -102,6 +102,7 @@ void TIM3_IRQHandler(void)
 	{
 		TIM_ClearITPendingBit(TIM3, TIM_FLAG_Update);
 		USART_send_char('a', 1);
+		timeout_set_send_flag();
 	}
 }
 

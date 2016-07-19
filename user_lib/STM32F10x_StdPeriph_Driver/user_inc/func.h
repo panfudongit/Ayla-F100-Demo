@@ -59,6 +59,7 @@ uint32_t ReadFlash(int addoff);
 
 void Receive_Ctrl_Board_Byte(char ch);
 void Receive_display_Byte(char ch);
+void timeout_set_send_flag(void);
 
 /******************************************************
 * #define DEVICES_MODE         1    "device_work_mode"
