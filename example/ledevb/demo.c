@@ -309,6 +309,17 @@ void Clean_ctrl_display()
 	index_display = 0;
 }
 
+void set_sync_flag(int pro_index, char val, int flag)
+{
+	*(s32 *)prop_table[pro_index].arg = (s32 )val;
+	prop_table[pro_index].val_len = sizeof(s32);
+	user_data[pro_index] = 1;
+	if(flag == 1)
+	{
+		prop_table[pro_index].send_mask = ADS_BIT;
+	}
+}
+
 /****************************************************************
 * FUNC   :  receive dispaly data of Byte
 * uart3  :
@@ -348,25 +359,19 @@ u8 send_property_from_ctrl_display( void )
 	USART_send_buf(boardcmd, hostcmd_len, CTRL_COM);
 	if(boardcmd[1] == (char)0xD0) //heating work temp and set temp
 	{
-		*(s32 *)prop_table[DEVICES_SET_HTEMP].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_SET_HTEMP].val_len = sizeof(s32);
-		user_data[DEVICES_SET_HTEMP] = 1;
+		set_sync_flag(DEVICES_SET_HTEMP, boardcmd[3], 0); //sync1, timeout sync
 		Clean_ctrl_display();
 		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD1) //bath work temp
 	{
-		*(s32 *)prop_table[DEVICES3_SET_BTEMP].arg = (s32)boardcmd[3];
-		prop_table[DEVICES3_SET_BTEMP].val_len = sizeof(s32);
-		user_data[DEVICES3_SET_BTEMP] = 1;
+		set_sync_flag(DEVICES3_SET_BTEMP, boardcmd[3], 0); //sync1, timeout sync
 		Clean_ctrl_display();
 		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD2) //devices mode, real time sync to server
 	{
-		*(s32 *)prop_table[DEVICES_MODE].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_MODE].val_len = sizeof(s32);
-		prop_table[DEVICES_MODE].send_mask = ADS_BIT;
+		set_sync_flag(DEVICES_MODE, boardcmd[3], 1); //real time sync, timeout sync
 		Clean_ctrl_display();
 		return TRUE;
 	}
@@ -413,97 +418,57 @@ u8 send_property_from_ctrl_board( void )
 	USART_send_buf(boardcmd, hostcmd_len, DISPLAY_COM);
 	if(boardcmd[1] == (char)0xD0) //heating work temp and set temp
 	{
-		*(s32 *)prop_table[DEVICES_SET_HTEMP].arg = (s32)boardcmd[2];
-		prop_table[DEVICES_SET_HTEMP].val_len = sizeof(s32);
-		user_data[DEVICES_SET_HTEMP] = 1;
-
-		*(s32 *)prop_table[DEVICES_WORK_HTEMP].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_WORK_HTEMP].val_len = sizeof(s32);
-		user_data[DEVICES_WORK_HTEMP] = 1;
+		set_sync_flag(DEVICES_SET_HTEMP, boardcmd[2], 0);  //arg1, sync1, timeout sync
+		set_sync_flag(DEVICES_WORK_HTEMP, boardcmd[3], 0); //arg2, sync1, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD1) //bath work temp and set temp
 	{
-		*(s32 *)prop_table[DEVICES3_SET_BTEMP].arg = (s32)boardcmd[2];
-		prop_table[DEVICES3_SET_BTEMP].val_len = sizeof(s32);
-		user_data[DEVICES3_SET_BTEMP] = 1;
-
-		*(s32 *)prop_table[DEVICES_WORK_BTEMP].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_WORK_BTEMP].val_len = sizeof(s32);
-		user_data[DEVICES_WORK_BTEMP] = 1;
+		set_sync_flag(DEVICES3_SET_BTEMP, boardcmd[2], 0);  //arg1, sync1, timeout sync
+		set_sync_flag(DEVICES_WORK_BTEMP, boardcmd[3], 0);  //arg2, sync1, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
-	if(boardcmd[1] == (char)0xD2) //devices mode, real time sync to server
+	if(boardcmd[1] == (char)0xD2) //devices mode and inout temp
 	{
-		*(s32 *)prop_table[DEVICES_MODE].arg = (s32)boardcmd[2];
-		prop_table[DEVICES_MODE].val_len = sizeof(s32);
-		prop_table[DEVICES_MODE].send_mask = ADS_BIT;
-
-		*(s32 *)prop_table[DEVICES_INOUT_TEMP].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_INOUT_TEMP].val_len = sizeof(s32);
-		user_data[DEVICES_INOUT_TEMP] = 1;
+		set_sync_flag(DEVICES_MODE, boardcmd[2], 1);       //arg1, real time sync, timeout sync
+		set_sync_flag(DEVICES_INOUT_TEMP, boardcmd[3], 0); //arg2, sync2, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD3) //devices gas temp, and water level
 	{
-		*(s32 *)prop_table[DEVICES_GTEMP].arg = (s32)boardcmd[2];
-		prop_table[DEVICES_GTEMP].val_len = sizeof(s32);
-		user_data[DEVICES_GTEMP] = 1;
-
-		*(s32 *)prop_table[DEVICES_WLEVEL].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_WLEVEL].val_len = sizeof(s32);
-		user_data[DEVICES_WLEVEL] = 1;
+		set_sync_flag(DEVICES_GTEMP, boardcmd[2], 1);  //arg1, sync2, timeout sync
+		set_sync_flag(DEVICES_WLEVEL, boardcmd[3], 0); //arg2, sync2, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD4) //devices heating_water_temp and bath_water_temp
 	{
-		*(s32 *)prop_table[DEVICES_HWTEMP].arg = (s32)boardcmd[2];
-		prop_table[DEVICES_HWTEMP].val_len = sizeof(s32);
-		user_data[DEVICES_HWTEMP] = 1;
-
-		*(s32 *)prop_table[DEVICES_BWTEMP].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_BWTEMP].val_len = sizeof(s32);
-		user_data[DEVICES_BWTEMP] = 1;
+		set_sync_flag(DEVICES_HWTEMP, boardcmd[2], 0);  //arg1, sync2, timeout sync
+		set_sync_flag(DEVICES_BWTEMP, boardcmd[3], 0);  //arg2, sync2, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
-	if(boardcmd[1] == (char)0xD5) //failt code, real time sync to server
+	if(boardcmd[1] == (char)0xD5) //dev power, failt code
 	{
-		*(s32 *)prop_table[DEVICES_PVOLTAGE].arg = (s32)boardcmd[2];
-		prop_table[DEVICES_PVOLTAGE].val_len = sizeof(s32);
-		user_data[DEVICES_PVOLTAGE] = 1;
-
-		*(s32 *)prop_table[DEVICES_FAULT_CODE].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_FAULT_CODE].val_len = sizeof(s32);
-		prop_table[DEVICES_FAULT_CODE].send_mask = ADS_BIT;
+		set_sync_flag(DEVICES_PVOLTAGE, boardcmd[2], 0);   //arg1, sync2, timeout sync
+		set_sync_flag(DEVICES_FAULT_CODE, boardcmd[3], 1); //arg2, real time sync, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
-	if(boardcmd[1] == (char)0xD6) //bath weter and status code, real time sync to server
+	if(boardcmd[1] == (char)0xD6) //bath weter and status code
 	{
-		*(s32 *)prop_table[DEVICES_WATER_RATE].arg = (s32)boardcmd[2];
-		prop_table[DEVICES_WATER_RATE].val_len = sizeof(s32);
-		user_data[DEVICES_WATER_RATE] = 1;
-
-		*(s32 *)prop_table[DEVICES_STATUS_CODE].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_STATUS_CODE].val_len = sizeof(s32);
-		prop_table[DEVICES_STATUS_CODE].send_mask = ADS_BIT;
+		set_sync_flag(DEVICES_WATER_RATE, boardcmd[2], 0);  //arg1, sync2, timeout sync
+		set_sync_flag(DEVICES_STATUS_CODE, boardcmd[3], 1); //arg2, real time sync, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
 	if(boardcmd[1] == (char)0xD8) //current
 	{
-		*(s32 *)prop_table[DEVICES_FTACHOME].arg = (s32)boardcmd[2];
-		prop_table[DEVICES_FTACHOME].val_len = sizeof(s32);
-		user_data[DEVICES_FTACHOME] = 1;
-
-		*(s32 *)prop_table[DEVICES_CVAL].arg = (s32)boardcmd[3];
-		prop_table[DEVICES_CVAL].val_len = sizeof(s32);
-		user_data[DEVICES_CVAL] = 1;
+		set_sync_flag(DEVICES_FTACHOME, boardcmd[2], 0);  //arg1, sync2, timeout sync
+		set_sync_flag(DEVICES_CVAL, boardcmd[3], 0);      //arg2, sync2, timeout sync
 		Clean_ctrl_board();
 		return TRUE;
 	}
