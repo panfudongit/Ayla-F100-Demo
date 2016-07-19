@@ -190,6 +190,7 @@ static void devices_obligate_func(struct prop *prop, void *arg, void *valp, size
 static void devices_expand_func(struct prop *prop, void *arg, void *valp, size_t len);
 static void request_dev_status(struct prop *prop, void *arg, void *valp, size_t len);
 
+#define TIMEOUT 10
 static int count = 0;
 #define USER_MAX 19
 static int user_data[USER_MAX];
@@ -398,7 +399,7 @@ void send_host_sync_property( void)
 
 void timeout_set_send_flag(void)
 {
-	if(count == 5)
+	if(count == TIMEOUT)
 	{
 		count = 0;
 		host_timeout_ready = TRUE;
