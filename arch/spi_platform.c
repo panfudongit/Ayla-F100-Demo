@@ -29,23 +29,36 @@
 #include <string.h>
 #include <ayla/mcu_platform.h>
 #include "mcu_io.h"
+#include "stm32f10x.h"
 #include "spi_platform_arch.h"
 #include <func.h>
 
 #ifdef USER_SPI2
-static void spi_platform_wait_idle(void)
-{
-	SPI_TypeDef *spi = SPI2;
 
-	/*
-	 * Make sure SPI I/O is complete first.
-	 * The reference manual says to check for TXE followed by not busy.
-	 */
-	while (!(spi->SR & SPI_I2S_FLAG_TXE))
-		;
-	while (spi->SR & SPI_I2S_FLAG_BSY)
-		;
+#ifdef USER_SPI2_RX_IRQ
+
+void NVIC_Configuration_spi2(void)
+{
+  NVIC_InitTypeDef NVIC_InitStructure;
+
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_InitStructure.NVIC_IRQChannel = SPI2_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+  NVIC_Init(&NVIC_InitStructure);
 }
+
+void SPI1_IRQHandler(void)
+{
+  if(SPI_I2S_GetITStatus(SPI1, SPI_I2S_IT_TXE) != RESET)
+  {
+//    spi_rx = SPI2->DR;
+  }
+}
+
+#endif
 
 void spi_platform_init(void)
 {
@@ -54,7 +67,9 @@ void spi_platform_init(void)
 
 	/* Enable GPIOB clocks */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
-
+#ifdef USER_SPI2_RX_IRQ
+	NVIC_Configuration_spi2();
+#endif	
 	/* Enable the SPI2 Pins Software Remapping */
 
 
@@ -100,46 +115,11 @@ void spi_platform_init(void)
 
 	SPI_Cmd(SPI2, ENABLE);
 
-#ifdef READ_PB10_INIT_PB11
-	/* Configure PB11 pin as input for INTR_N */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-#endif
-#ifdef READ_PA12_INT_PA3
-	/* Configure PA3 pin as input for INTR_N */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-#endif
 }
 
 void spi_platform_intr_init(void)
 {
-	NVIC_InitTypeDef nvic_init;
-	EXTI_InitTypeDef exti_init;
-
-	/*
-	 * Set module interrupt line to cause ext interrupt on falling edge.
-	 */
-#ifdef READ_PB10_INIT_PB11
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource11);
-#endif
-#ifdef READ_PA12_INT_PA3
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource3);
-#endif
-
-	exti_init.EXTI_Line = INTR_N_EXT_LINE;
-	exti_init.EXTI_Mode = EXTI_Mode_Interrupt;
-	exti_init.EXTI_Trigger = EXTI_Trigger_Falling;
-	exti_init.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&exti_init);
-
-	nvic_init.NVIC_IRQChannel = INTR_N_IRQ;
-	nvic_init.NVIC_IRQChannelPreemptionPriority = 15;
-	nvic_init.NVIC_IRQChannelSubPriority = 0;
-	nvic_init.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&nvic_init);
+	;
 }
 
 /*
@@ -150,16 +130,7 @@ void spi_platform_slave_select(void)
 	GP_SPI_GPIO->BRR = bit(GP_SPI_NSS);
 }
 
-/*
- * Deselect slave
- */
-void spi_platform_slave_deselect(void)
-{
-	spi_platform_wait_idle();
-	GP_SPI_GPIO->BSRR = bit(GP_SPI_NSS);
-}
-
-static void spi_platform_out(u8 byte)
+void spi_platform_out(u8 byte)
 {
 	SPI_TypeDef *spi = SPI2;
 
@@ -168,7 +139,7 @@ static void spi_platform_out(u8 byte)
 	SPI_I2S_SendData(SPI2, byte);
 }
 
-static u8 spi_platform_in(void)
+u8 spi_platform_in(void)
 {
 	SPI_TypeDef *spi = SPI2;
 	u16 sr;
@@ -185,111 +156,35 @@ static u8 spi_platform_in(void)
 	}
 }
 
-/*
- * Send out 'byte' and return the incoming byte
- */
-u8 spi_platform_io(u8 byte)
-{
-	spi_platform_out(byte);
-	return spi_platform_in();
-}
-
-/*
- * Send and receive the last byte of a SPI message, followed by the CRC byte.
- *
- * NB:  The setting of CRCNEXT must happen immediately after the last
- * byte is sent.  See RM0008.
- */
-u8 spi_platform_io_crc(u8 byte)
-{
-	SPI_TypeDef *spi = SPI2;
-	u16 sr;
-
-	while (!(spi->SR & SPI_I2S_FLAG_TXE))
-		;
-	SPI_I2S_SendData(SPI2, byte);
-	spi->CR1 |= SPI_CR1_CRCNEXT;
-	byte = spi_platform_in();
-
-	/*
-	 * Wait for CRC byte.
-	 */
-	for (;;) {
-		sr = spi->SR;
-		if (sr & SPI_I2S_FLAG_OVR) {
-			SPI_I2S_ReceiveData(SPI2);
-			(void)spi->SR;
-		}
-		if (sr & SPI_I2S_FLAG_RXNE) {
-			SPI_I2S_ReceiveData(SPI2);
-			break;
-		}
-	}
-	return byte;
-}
-
-/*
- * Enable CRC
- */
-void spi_platform_crc_en(void)
-{
-	spi_platform_wait_idle();
-	SPI2->CR1 |= SPI_CR1_CRCEN;
-}
-
-/*
- * Clear CRC status and return if error
- */
-int spi_platform_crc_err(void)
-{
-	SPI_TypeDef *spi = SPI2;
-	int err = 0;
-
-	spi_platform_wait_idle();
-	if (spi->SR & SPI_SR_CRCERR) {
-		spi->SR &= ~SPI_SR_CRCERR;
-		err = 1;
-	}
-	spi->CR1 &= ~(SPI_CR1_CRCEN | SPI_CR1_CRCNEXT);
-	return err;
-}
-
-/*
- * Interrupt handler for external interrupts 10 thru 15.
- * EXTI 11 is the module interrupt line, when asserted it means there is a
- * SPI message waiting to be received.
- */
-void EXTI15_10_IRQHandler(void)
-{
-	intr_stats.intr_line++;
-	if (!EXTI_GetITStatus(INTR_N_EXT_LINE)) {
-		return;
-	}
-	EXTI_ClearITPendingBit(INTR_N_EXT_LINE);
-}
-/*
- * Check if there is a receive pending
- */
-int spi_platform_rx_pending(void)
-{
-	return (INTR_N_GPIO->IDR & bit(INTR_N_PIN)) == 0;
-}
 #endif
 
 #ifdef USER_SPI1
-static void spi_platform_wait_idle(void)
-{
-	SPI_TypeDef *spi = SPI1;
 
-	/*
-	 * Make sure SPI I/O is complete first.
-	 * The reference manual says to check for TXE followed by not busy.
-	 */
-	while (!(spi->SR & SPI_I2S_FLAG_TXE))
-		;
-	while (spi->SR & SPI_I2S_FLAG_BSY)
-		;
+#ifdef USER_SPI1_RX_IRQ
+
+void NVIC_Configuration_spi1(void)
+{
+  NVIC_InitTypeDef NVIC_InitStructure;
+
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+
+
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_InitStructure.NVIC_IRQChannel = SPI1_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+  NVIC_Init(&NVIC_InitStructure);
 }
+
+void SPI1_IRQHandler(void)
+{
+  if(SPI_I2S_GetITStatus(SPI1, SPI_I2S_IT_TXE) != RESET)
+  {
+//    spi_rx = SPI1->DR;
+  }
+}
+
+#endif
 
 void spi_platform_init(void)
 {
@@ -299,6 +194,9 @@ void spi_platform_init(void)
 	/* Enable GPIOB clocks */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
 
+#ifdef USER_SPI2_RX_IRQ
+	void NVIC_Configuration_spi1(void);
+#endif
 	/* Enable the SPI2 Pins Software Remapping */
 
 	/*	PA4:	SSN
@@ -343,46 +241,11 @@ void spi_platform_init(void)
 
 	SPI_Cmd(SPI1, ENABLE);
 
-#ifdef READ_PB10_INIT_PB11
-	/* Configure PB11 pin as input for INTR_N */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-#endif
-#ifdef READ_PA12_INT_PA3
-	/* Configure PA3 pin as input for INTR_N */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-#endif
 }
 
 void spi_platform_intr_init(void)
 {
-	NVIC_InitTypeDef nvic_init;
-	EXTI_InitTypeDef exti_init;
-
-	/*
-	 * Set module interrupt line to cause ext interrupt on falling edge.
-	 */
-#ifdef READ_PB10_INIT_PB11
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource11);
-#endif
-#ifdef READ_PA12_INT_PA3
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource3);
-#endif
-
-	exti_init.EXTI_Line = INTR_N_EXT_LINE;
-	exti_init.EXTI_Mode = EXTI_Mode_Interrupt;
-	exti_init.EXTI_Trigger = EXTI_Trigger_Falling;
-	exti_init.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&exti_init);
-
-	nvic_init.NVIC_IRQChannel = INTR_N_IRQ;
-	nvic_init.NVIC_IRQChannelPreemptionPriority = 15;
-	nvic_init.NVIC_IRQChannelSubPriority = 0;
-	nvic_init.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&nvic_init);
+	;
 }
 
 /*
@@ -398,11 +261,10 @@ void spi_platform_slave_select(void)
  */
 void spi_platform_slave_deselect(void)
 {
-	spi_platform_wait_idle();
 	GP_SPI_GPIO->BSRR = bit(GP_SPI_NSS);
 }
 
-static void spi_platform_out(u8 byte)
+void spi_platform_out(u8 byte)
 {
 	SPI_TypeDef *spi = SPI1;
 
@@ -411,7 +273,7 @@ static void spi_platform_out(u8 byte)
 	SPI_I2S_SendData(SPI1, byte);
 }
 
-static u8 spi_platform_in(void)
+u8 spi_platform_in(void)
 {
 	SPI_TypeDef *spi = SPI1;
 	u16 sr;
@@ -428,93 +290,4 @@ static u8 spi_platform_in(void)
 	}
 }
 
-/*
- * Send out 'byte' and return the incoming byte
- */
-u8 spi_platform_io(u8 byte)
-{
-	spi_platform_out(byte);
-	return spi_platform_in();
-}
-
-/*
- * Send and receive the last byte of a SPI message, followed by the CRC byte.
- *
- * NB:  The setting of CRCNEXT must happen immediately after the last
- * byte is sent.  See RM0008.
- */
-u8 spi_platform_io_crc(u8 byte)
-{
-	SPI_TypeDef *spi = SPI1;
-	u16 sr;
-
-	while (!(spi->SR & SPI_I2S_FLAG_TXE))
-		;
-	SPI_I2S_SendData(SPI1, byte);
-	spi->CR1 |= SPI_CR1_CRCNEXT;
-	byte = spi_platform_in();
-
-	/*
-	 * Wait for CRC byte.
-	 */
-	for (;;) {
-		sr = spi->SR;
-		if (sr & SPI_I2S_FLAG_OVR) {
-			SPI_I2S_ReceiveData(SPI1);
-			(void)spi->SR;
-		}
-		if (sr & SPI_I2S_FLAG_RXNE) {
-			SPI_I2S_ReceiveData(SPI1);
-			break;
-		}
-	}
-	return byte;
-}
-
-/*
- * Enable CRC
- */
-void spi_platform_crc_en(void)
-{
-	spi_platform_wait_idle();
-	SPI1->CR1 |= SPI_CR1_CRCEN;
-}
-
-/*
- * Clear CRC status and return if error
- */
-int spi_platform_crc_err(void)
-{
-	SPI_TypeDef *spi = SPI1;
-	int err = 0;
-
-	spi_platform_wait_idle();
-	if (spi->SR & SPI_SR_CRCERR) {
-		spi->SR &= ~SPI_SR_CRCERR;
-		err = 1;
-	}
-	spi->CR1 &= ~(SPI_CR1_CRCEN | SPI_CR1_CRCNEXT);
-	return err;
-}
-
-/*
- * Interrupt handler for external interrupts 10 thru 15.
- * EXTI 11 is the module interrupt line, when asserted it means there is a
- * SPI message waiting to be received.
- */
-void EXTI15_10_IRQHandler(void)
-{
-	intr_stats.intr_line++;
-	if (!EXTI_GetITStatus(INTR_N_EXT_LINE)) {
-		return;
-	}
-	EXTI_ClearITPendingBit(INTR_N_EXT_LINE);
-}
-/*
- * Check if there is a receive pending
- */
-int spi_platform_rx_pending(void)
-{
-	return (INTR_N_GPIO->IDR & bit(INTR_N_PIN)) == 0;
-}
 #endif

@@ -2,10 +2,6 @@
 #include "stm32f10x.h"
 #include "stm32f10x_usart.h"
 
-#define READ_PB10_INIT_PB11
-//#define READ_PA12_INT_PA3
-//#define USER_SPI1
-#define USER_SPI2
 #define TRUE			1
 #define FALSE			0
 #define USER_DEBUG
@@ -53,3 +49,15 @@ void delay_ms(u32 nms);
 ********************************************/
 void WirteFlash(int addoff, uint32_t *data, int wordn);
 uint32_t ReadFlash(int addoff);
+
+
+// SPI
+//#define READ_PB10_INIT_PB11
+//#define READ_PA12_INT_PA3
+#define USER_SPI1
+#define USER_SPI1_RX_IRQ
+// #define USER_SPI2
+// #define USER_SPI2_RX_IRQ
+void spi_platform_init(void);
+void spi_platform_out(u8 byte);
+u8 spi_platform_in(void);

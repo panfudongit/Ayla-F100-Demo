@@ -116,14 +116,6 @@ static void stm32_intr_init(void)
 }
 
 /*
- * Check if module is ready
- */
-int stm32_ready(void)
-{
-	return (READY_N_GPIO->IDR & bit(READY_N_PIN)) == 0;
-}
-
-/*
  * Get the state of a LED
  */
 int stm32_get_led(u32 pin)
