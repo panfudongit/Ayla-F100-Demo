@@ -181,7 +181,6 @@ static u8 stm32_button_read(void)
 				     tick + BUTTON_ON_MIN_TICKS;
 			}
 			stm32_button.val = new;
-			demo_set_button_state(stm32_button.val);
 		}
 	}
 	return new;
@@ -212,7 +211,7 @@ void SysTick_Handler(void)
 		stm32_button_read();
 		if (stm32_button.val > stm32_button.raw) {
 			stm32_button.val = stm32_button.raw;
-			demo_set_button_state(stm32_button.val);
+
 		}
 	}
 }

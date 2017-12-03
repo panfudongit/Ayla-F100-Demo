@@ -58,7 +58,7 @@ u8 template_req;
 static size_t image_size;
 static size_t cur_off;
 u8 boot2inactive;
-extern char version[];
+
 
 static int mcu_inactive_erase(int force);
 static int mcu_flash_block_erased(u32 off);
@@ -96,17 +96,7 @@ void set_boot2inactive(struct prop *prop, void *arg, void *valp, size_t len)
  */
 static void mcu_tmpl_ver(char *tmpl_ver, int *len)
 {
-	int i, cnt;
-
-	for (i = 0, cnt = 0; i < *len - 1; i++) {
-		tmpl_ver[i] = version[i];
-		if (version[i] == ' ' && ++cnt > 1) {
-			break;
-		}
-	}
-	memset(&tmpl_ver[i], 0, *len - i);
-	tmpl_ver[i] = '\0';
-	*len = i;
+;
 }
 
 int send_template_version(struct prop *prop, void *arg)
@@ -177,13 +167,6 @@ static void mcu_img_upgrade_check(char *ver, int ver_len, size_t img_sz)
 	image_size = img_sz;
 	cur_off = 0;
 
-	if (ver) {
-		if (ver_len == strlen(version) &&
-		    !memcmp(ver, version, ver_len)) {
-			host_ota_stat(AERR_ALREADY);
-			return;
-		}
-	}
 	/*
 	 * Erase the inactive image slot if needed.
 	 */

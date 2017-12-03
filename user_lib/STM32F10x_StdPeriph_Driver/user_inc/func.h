@@ -9,7 +9,7 @@
 #define TRUE			1
 #define FALSE			0
 #define USER_DEBUG
-#define USER_DEBUG_COM 3
+#define USER_DEBUG_COM 1
 void printd(char *p);
 /*****************************************
 *Uart func
@@ -18,8 +18,8 @@ void USART_init(void);
 void USART_send_char(char ch, int com);
 void USART_send_buf(char *buf, int len, int com);
 char USART_receive_char(int com);
-//#define ENABLE_UART1
-//#define ENABLE_UART1_RPA10_TPA9
+#define ENABLE_UART1
+#define ENABLE_UART1_RPA10_TPA9
 #define USART1_BaudRate 9600
 #define USART1_WordLength USART_WordLength_8b
 #define USART1_StopBits USART_StopBits_1
@@ -32,8 +32,8 @@ char USART_receive_char(int com);
 //#define USART2_StopBits USART_StopBits_1
 //#define USART2_Parity USART_Parity_No
 //#define USART2_HardwareFlowControl USART_HardwareFlowControl_None
-#define ENABLE_UART3
-#define ENABLE_UART3_RPC11_TPC10
+//#define ENABLE_UART3
+//#define ENABLE_UART3_RPC11_TPC10
 //#define ENABLE_UART3_RPB11_TPB10
 #define USART3_BaudRate 9600
 #define USART3_WordLength USART_WordLength_8b

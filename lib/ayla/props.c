@@ -50,13 +50,6 @@ static void *prop_retry_arg;
  */
 struct prop *prop_lookup(const char *name)
 {
-	struct prop *prop;
-
-	for (prop = prop_table; prop->name != NULL; prop++) {
-		if (!strcmp(prop->name, name)) {
-			return prop;
-		}
-	}
 	return NULL;
 }
 
@@ -91,17 +84,7 @@ void prop_send_req_to_ads_only(const char *name)
  */
 struct prop *prop_lookup_len(const char *name, size_t name_len)
 {
-	struct prop *prop;
 
-	for (prop = prop_table; prop->name != NULL; prop++) {
-		if (prop->name_len == 0) {
-			prop->name_len = strlen(prop->name);
-		}
-		if (prop->name_len == name_len && 
-		    !memcmp(prop->name, name, name_len)) {
-			return prop;
-		}
-	}
 	return NULL;
 }
 
@@ -314,18 +297,6 @@ void prop_poll(void)
 	}
 #endif /* AYLA_FILE_PROP*/
 
-	/* Send out property echoes */
-	for (prop = prop_table; prop->name != NULL; prop++) {
-		if (prop->send && ads_up && (prop->send_mask & ADS_BIT) &&
-		    prop->echo) {
-			if (prop->send(prop, NULL)) {
-				return;
-			}
-			prop->send_mask = 0;
-			prop_active = prop;
-			prop->echo = 0;
-		}
-	}
 
 	/* Enable receiving props/updates from service */
 	if (send_ads_listen_cmd) {
@@ -342,43 +313,14 @@ void prop_poll(void)
 		}
 		prop_request_all = 0;
 		prop_request_all_req_id = req_id;
-		for (prop = prop_table; prop->name != NULL; prop++) {
-			prop->get_val = 0;
-		}
+
 	}
 
-	/* Send props or request values */
-	for (prop = prop_table; prop->name != NULL; prop++) {
-		if (prop->get_val && ads_up) {
-			if (serial_request_prop(prop, &req_id)) {
-				return;
-			}
-			prop->get_val = 0;
-			prop_active = prop;
-		}
-		if (prop->send && (prop->send_mask & valid_dest_mask)) {
-			if (prop->send(prop, NULL)) {
-				return;
-			}
-			prop->send_mask &= ~(NOT_ADS_BIT | valid_dest_mask);
-			prop_active = prop;
-		}
-	}
 }
 
 int prop_pending(void)
 {
-	struct prop *prop;
-	u8 ads_up = (valid_dest_mask & ADS_BIT);
 
-	for (prop = prop_table; prop->name != NULL; prop++) {
-		if (prop->get_val && ads_up) {
-			return 1;
-		}
-		if (prop->send_mask & valid_dest_mask) {
-			return 1;
-		}
-	}
 	return 0;
 }
 
@@ -437,12 +379,6 @@ int prop_nak(struct ayla_cmd *cmd, void *buf, size_t len)
  */
 struct prop *prop_lookup_error(void)
 {
-	struct prop *prop;
 
-	for (prop = prop_table; prop->name != NULL; prop++) {
-		if (prop->send_err != 0) {
-			return prop;
-		}
-	}
 	return NULL;
 }

@@ -61,7 +61,7 @@ static struct send_arg serial_send_arg;
 static u8 serial_msg_pkt[TLV_MAX_STR_LEN + 1];
 static u32 serial_msg_next_off;
 static u32 serial_msg_tot_size;
-
+u8 prop_count =0;
 #ifdef AYLA_UART
 static u8 tx_err_op_cb;
 static u32 tx_err_req_id_cb;
@@ -443,65 +443,9 @@ reject:
  */
 static void serial_rx_send_next_tlv(struct ayla_cmd *cmd, void *buf, size_t len)
 {
-	struct prop *prop;
-	struct ayla_tlv *tlv = (struct ayla_tlv *)buf;
-	struct send_arg send_arg;
-	u32 index;
-	u8 err;
 
-	memset(&send_arg, 0, sizeof(send_arg));
-	send_arg.resp = 1;
-	send_arg.req_id = ntohs(cmd->req_id);
-	if (len == 0) {
-		index = 0;
-	} else {
-		if (len < sizeof(*tlv)) {
-			STATS(rx_len_err);
-			err = AERR_LEN_ERR;
-			goto reject;
-		}
-		if (tlv->type != ATLV_CONT) {
-			STATS(rx_no_name);
-			err = AERR_INVAL_TLV;
-			goto reject;
-		}
-		if (len < tlv->len + sizeof(*tlv) || tlv->len != sizeof(u32)) {
-			STATS(rx_tlv_len_err);
-			err = AERR_LEN_ERR;
-			goto reject;
-		}
-		index = get_ua_be32((be32 *)(tlv + 1));
-		if (index >= prop_count) {
-			STATS(rx_unk_name);
-			err = AERR_UNK_VAR;
-			goto reject;
-		}
-	}
-	if (prop_is_busy()) {
-		/* don't reply to prop requests if prop state machine is busy */
-		return;
-	}
-	prop = &prop_table[index];
-	for (index++; index < prop_count; index++) {
-#ifdef AYLA_FILE_PROP
-		if (prop_table[index].send == prop_dp_send) {
-			continue;
-		}
-#endif /* AYLA_FILE_PROP */
-		if (prop_table[index].send) {
-			break;
-		}
-	}
-	send_arg.cont = index < prop_count ? index : 0;
-	if (!prop->send) {
-		STATS(rx_no_send);
-		err = AERR_UNK_VAR;
-		goto reject;
-	}
-	prop->send(prop, &send_arg);
 	return;
-reject:
-	serial_tx_err(AD_SEND_PROP_RESP, send_arg.req_id, err, 0);
+
 }
 
 /*
